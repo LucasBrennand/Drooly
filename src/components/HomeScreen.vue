@@ -1,3 +1,4 @@
+
 <template>
   <div class="home-screen">
     <div
@@ -54,7 +55,8 @@
 </template>
 
 <script>
-const backgroundMusic = new Audio(require("@/assets/Music.mp3"));
+import musicPath from "@/assets/Music.mp3"; // <-- Use 'import' to get the asset URL
+const backgroundMusic = new Audio(musicPath); 
 backgroundMusic.loop = true;
 
 export default {

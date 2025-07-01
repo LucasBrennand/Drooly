@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(
-  process.env.VITE_GEMINI_API_KEY || "AIzaSyCJRkMd02OcDDB7_lGS0eu8rAIGgG5ax-s"
+  import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyCJRkMd02OcDDB7_lGS0eu8rAIGgG5ax-s"
 );
 
 export async function analyzeDrawing(imageBase64, targetWord = null) {
