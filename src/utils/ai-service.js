@@ -1,166 +1,45 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(
-  import.meta.env.VITE_GEMINI_KEY
-);
+// src/utils/ai-service.js
+// REMOVA as linhas de importação do GoogleGenerativeAI e a inicialização do genAI
+// import { GoogleGenerativeAI } from "@google/generative-ai"; // REMOVA ESTA LINHA
+// const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_KEY); // REMOVA ESTA LINHA
 
 export async function analyzeDrawing(imageBase64, targetWord = null) {
-  let base64Data;
+  // Sua lógica de validação de imagem continua aqui no frontend
+  if (!imageBase64?.match(/^data:image\/(png|jpeg);base64,/)) {
+    throw new Error("Invalid image format");
+  }
+
+  // A chave da API não é mais necessária aqui, pois a chamada vai para o backend
+  // Apenas a validação da imagem e o envio para o backend
+  const base64Data = imageBase64; // Envie a string base64 completa, o backend fará o split
 
   try {
-    if (!imageBase64?.match(/^data:image\/(png|jpeg);base64,/)) {
-      throw new Error("Invalid image format");
-    }
-
-    base64Data = imageBase64.split(",")[1];
-    if (!base64Data || base64Data.length < 100) {
-      throw new Error("Image data too small");
-    }
-
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-      ],
-      generationConfig: {
-        temperature: 0.1,
-        topP: 0.3,
-        maxOutputTokens: 5,
-      },
+    // Chame sua Serverless Function no Vercel.
+    // A URL '/api/analyze-gemini' é o caminho padrão para funções na pasta 'api' no Vercel.
+    const response = await fetch('/api/analyze-gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64Data, targetWord }) // Envia os dados para sua função
     });
 
-    const prompt = `
-You are analyzing drawings made by children ages 5-8 for an English learning game. 
-Follow these rules STRICTLY:
-
-1. SHAPE-BASED ANALYSIS:
-   - Circle with lines radiating out = "sun"
-   - Square with triangle on top = "house"
-   - Four lines attached to oval = "dog" (not specific breeds)
-   - Green triangle on rectangle = "tree"
-
-2. COLOR INTERPRETATION:
-   - Yellow circle = "sun" (ignore if lines are missing)
-   - Brown rectangle with green top = "tree"
-   - Red circle = "apple" (only if stem present)
-
-3. CHILD DRAWING CONVENTIONS:
-   - Faces: Circle with dots for eyes
-   - Animals: Basic shapes with legs as straight lines
-   - Vehicles: Rectangles with circles as wheels
-   - Plants: Simple stem with leaves or flowers
-
-4. WORD SELECTION RULES:
-   - Only choose from these words (never invent new ones):
-     ${[
-       "apple",
-       "ball",
-       "cat",
-       "dog",
-       "egg",
-       "fish",
-       "girl",
-       "hat",
-       "ice",
-       "nose",
-       "owl",
-       "pig",
-       "queen",
-       "rain",
-       "tree",
-       "umbrella",
-       "box",
-       "book",
-       "car",
-       "duck",
-       "eye",
-       "foot",
-       "grape",
-       "hand",
-       "orange",
-       "pen",
-       "rose",
-       "table",
-       "violin",
-       "window",
-       "ant",
-       "bag",
-       "cup",
-       "door",
-       "ear",
-       "flag",
-       "lip",
-       "rat",
-       "web",
-     ].join(", ")}
-
-5. RESPONSE FORMAT:
-   - Single lowercase word only
-   - If unclear, respond with "Desconhecido"
-   - Never add explanations
-   - For ambiguous cases, choose the simpler option
-
-${
-  targetWord
-    ? `
-6. CONTEXT CLUES:
-   - The target word relates to: "${targetWord}"
-   - Consider similar shapes but don't say the word itself
-   - If between options, pick one closer to this category
-`
-    : ""
-}
-
-EXAMPLES OF PROPER ANALYSIS:
-- Circle with 8 lines = "sun" (not "wheel")
-- Brown rectangle + green blob = "tree" (not "broccoli")
-- Circle + 4 lines + tail = "dog" (not "wolf")
-- Red circle + stem = "apple" (not "tomato")
-`;
-
-    // 4. Get AI response
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: prompt },
-            { inlineData: { data: base64Data, mimeType: "image/png" } },
-          ],
-        },
-      ],
-    });
-
-    const response = await result.response;
-    const text = response
-      .text()
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z]/g, "");
-
-    // 5. Validate response
-    if (!text || text === "object" || text === "shape") {
-      return formatResponse(targetWord || "unrecognized", "low", false);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Backend error: ${errorData.error || response.statusText}`);
     }
 
-    return formatResponse(
-      text,
-      "high",
-      targetWord ? text === targetWord.toLowerCase() : null
-    );
+    const result = await response.json(); // Sua função serverless retorna a resposta formatada
+    return result; // Já é o formato final que você espera
   } catch (error) {
-    console.error("AI Analysis Failed:", {
+    console.error("AI Analysis Failed via Proxy:", {
       error: error.message,
-      imageSize: base64Data
-        ? `${(base64Data.length / 1024).toFixed(1)}KB`
-        : "unknown",
+      imageSize: imageBase64 ? `${(imageBase64.length / 1024).toFixed(1)}KB` : "unknown",
     });
+    // Use a função formatResponse para erros também
     return formatResponse(targetWord || "unrecognized", "error", false);
   }
 }
 
-// Helper function for consistent response format
+// Mantenha esta função auxiliar se ela for usada em outros lugares ou para o retorno de erro
 function formatResponse(guess, confidence, isCorrect) {
   return {
     guess,

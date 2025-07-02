@@ -7,9 +7,7 @@ import path from 'path'
 export default defineConfig(({ command }) => {
   return {
     plugins: [vue()],
-    // A base será '/' para desenvolvimento local (yarn dev)
-    // E '/drooly/' para o build de produção (yarn build) para o GitHub Pages
-    base: command === 'build' ? '/Drooly/' : '/', // <-- ESTA LINHA É CRUCIAL!
+    base: command === 'build' ? '/Drooly/' : '/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
