@@ -7,7 +7,7 @@ import path from 'path'
 export default defineConfig(({ command }) => {
   return {
     plugins: [vue()],
-    base: command === 'build' ? '/Drooly/' : '/',
+    base: '/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
